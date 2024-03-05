@@ -1,0 +1,38 @@
+{% extends 'index.html' %}
+
+{% block content %}
+<style>
+    .headder{
+        text-align: center;
+    }
+</style>
+
+
+<div class="content">
+    <div class="headder">
+        <h1 class="text-warning text-center display-4">Incident Log</h1>
+    
+    </div>
+
+    <div class="items">
+        <table class="table text-dark">
+            <tr>
+                <th>ID</th>
+                <th>Time</th>
+                <th>Incident</th>
+                <th>Ip Address</th>
+            </tr>
+            {% for i in incident %}
+            <tr>
+                <th>{{i.id}}</th>
+                <th>{{i.date}}</th>
+                <th>{{i.incident}}</th>
+                <th>{{i.ipaddress}}</th>
+            </tr>
+            {% endfor %}
+        </table>
+
+    </div>
+</div>
+
+{% endblock %}
