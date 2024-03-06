@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect , HttpResponse
-from .forms import UserAddForm
+from .forms import UserAddForm, IncomeForm, ExpenceForm
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate, logout
@@ -14,7 +14,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from .tokens import account_activation_token
 
-from .models import CustomeUserModel, IncidentLogs, CustomUser, ApppasswordAttempt
+from .models import CustomeUserModel, IncidentLogs, CustomUser, ApppasswordAttempt, Income, Expense
 from django.contrib.auth.decorators import login_required
 
 from .decorators import AppPasswordChecker
@@ -111,7 +111,7 @@ def SignUp(request):
 
         
             current_site = get_current_site(request)
-            mail_subject = 'Activate your E-Cart account.'
+            mail_subject = 'Activate your account.'
             message = render_to_string('emailbody.html', {'user': user,
                                                                      'domain': current_site.domain,
                                                                      'uid':urlsafe_base64_encode(force_bytes(user.pk)),
@@ -154,8 +154,43 @@ def SignOut(request):
 
 @login_required(login_url="SignIn")
 def AddIncome(request):
-    return render(request,"income.html")
+    form1 = ExpenceForm()
+    form = IncomeForm()
+    income = Income.objects.filter(user=request.user)
+    expence = Expense.objects.filter(user = request.user)
+    if request.method == "POST":
+        form = IncomeForm(request.POST)
+        if form.is_valid():
+            val = form.save()
+            val.user = request.user
+            val.save()
+            messages.info(request,"Income Data Added")
+            return redirect("AddIncome")
+        else:
+            messages.info(request,"Something Wrong..")
+            return redirect("AddIncome")
 
+    context = {
+        "form1":form1,
+        "form":form,
+        "income":income,
+        "expence":expence
+    }
+    return render(request,"income.html",context)
+
+@login_required(login_url="SignIn")
+def AddExpence(request):
+    if request.method == "POST":
+        form = ExpenceForm(request.POST)
+        if form.is_valid():
+            val = form.save()
+            val.user = request.user
+            val.save()
+            messages.info(request,"Expence Data Added")
+            return redirect("AddIncome")
+        else:
+            messages.info(request,"Something Wrong..")
+            return redirect("AddIncome")
 
 @AppPasswordChecker
 @login_required(login_url="SignIn")
@@ -163,6 +198,7 @@ def enterpassword(request):
     client_ip = request.META.get('HTTP_X_FORWARDED_FOR', None)
     if not client_ip:
         client_ip = request.META.get('REMOTE_ADDR', None)
+    current_site = get_current_site(request)
     if request.method == "POST":
         pswd1 = request.POST['pswd1']
         user = CustomUser.objects.get(user = request.user)
@@ -181,7 +217,11 @@ def enterpassword(request):
                 return redirect("AddIncome")
             else:
                 IncidentLogs.objects.create(user = user.user, incident = "Your App Password is blocked app password attempt",ipaddress = client_ip )
-
+                mail_subject = 'Invalid password attempt your account. Password Blocked'
+                message = render_to_string('emailbody4.html', {'user': user.user,"attempt":3-att.passwordattempt,'domain': current_site})
+                    
+                email = EmailMessage(mail_subject, message, to=[email])
+                email.send()
                 messages.info(request,"Your App Password is blocked please activate it from your email")
                 return redirect("enterpassword")
         else: 
@@ -193,9 +233,11 @@ def enterpassword(request):
                 if att.passwordattempt >= 3:
                     user.active = False
                     user.save()
+                    current_site = get_current_site(request)
+
                     IncidentLogs.objects.create(user = user.user, incident = f"Account have {att.passwordattempt} unsuccessfull app password  attempt blocked your app password",ipaddress = client_ip )
-                    mail_subject = 'Invalid password attempt your account.'
-                    message = render_to_string('emailbody4.html', {'user': user.user,"attempt":3-att.passwordattempt})
+                    mail_subject = 'Invalid password attempt your account. Password Blocked'
+                    message = render_to_string('emailbody4.html', {'user': user.user,"attempt":3-att.passwordattempt,'domain': current_site})
                     
                     email = EmailMessage(mail_subject, message, to=[email])
                     email.send()
@@ -249,10 +291,49 @@ def Createapppassword(request):
     return render(request,"apppasswordcreate.html")
 
 
+@login_required(login_url="SignIn")
 def IncidentLog(request):
     incident = IncidentLogs.objects.filter(user = request.user)
     context = {
         "incident":incident
     }
     return render(request,"incidentlog.html",context)
+
+
+def LoginforApppasswordReset(request):
+    if request.method == "POST":
+        uname = request.POST['uname']
+        pswd = request.POST['pswd']
+        user = authenticate(request,username = uname, password = pswd)
+        if user is not None:
+            login(request,user)
+            return redirect("Resetloginpassword")
+        else:
+            messages.info(request,"Incorrect password attempt")
+            return redirect('LoginforApppasswordReset')
+    return render(request,"loginforApppasswordreset.html")
+
+
+@login_required(login_url="SignIn")
+def Resetloginpassword(request):
+    if request.method == "POST":
+        pswd1 = request.POST['pswd1']
+        pswd2 = request.POST['pswd2']
+
+        if pswd1 == pswd2:
+            user = CustomUser.objects.get(user = request.user)
+            user.set_password(pswd1)
+            user.active = True
+            user.save()
+            appatt = ApppasswordAttempt.objects.get(custome = user)
+            appatt.passwordattempt = 0
+            appatt.save()
+            logout(request)
+            messages.info(request,"App Password Reset Completed......")
+            return redirect("SignIn")
+        else:
+            messages.info(request,"Password Do not Match")
+            return redirect("Resetloginpassword")
+
+    return render(request,'resetloginpassword.html')
 

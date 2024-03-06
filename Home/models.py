@@ -16,16 +16,16 @@ class IncomeSource(models.Model):
 		verbose_name_plural = 'Income Sources'
 
 class Income(models.Model):
-	user = models.ForeignKey(to = User,on_delete=models.CASCADE)
+	user = models.ForeignKey(User,on_delete=models.CASCADE, null=True)
 	amount = models.FloatField()
 	date = models.DateField(default = localtime)
 	description = models.TextField()
-	source = models.ForeignKey(to=IncomeSource,on_delete=models.CASCADE)
+	source = models.CharField(max_length = 255)
 	created_at = models.DateTimeField(default=localtime)
 	
 
 class ExpenseCategory(models.Model):
-	user = models.ForeignKey(to = User,on_delete=models.CASCADE)
+	user = models.ForeignKey(User,on_delete=models.CASCADE)
 	name = models.CharField(max_length = 256)
 	created_at = models.DateTimeField(default=localtime)
 	
@@ -36,11 +36,11 @@ class ExpenseCategory(models.Model):
 		verbose_name_plural = 'Expense Categories'
 
 class Expense(models.Model):
-	user = models.ForeignKey(to = User,on_delete=models.CASCADE)
+	user = models.ForeignKey(User,on_delete=models.CASCADE,null=True)
 	amount = models.FloatField()
 	date = models.DateField(default = localtime)
 	description = models.TextField()
-	category = models.ForeignKey(to=ExpenseCategory,on_delete=models.CASCADE)
+	category = models.CharField(max_length = 255)
 	created_at = models.DateTimeField(default=localtime)
 	
 

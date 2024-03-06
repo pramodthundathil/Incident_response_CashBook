@@ -13,6 +13,9 @@ urlpatterns = [
     path("enterpassword",views.enterpassword,name="enterpassword"),
     path("Createapppassword",views.Createapppassword,name="Createapppassword"),
     path("IncidentLog",views.IncidentLog,name="IncidentLog"),
+    path("LoginforApppasswordReset",views.LoginforApppasswordReset,name="LoginforApppasswordReset"),
+    path("Resetloginpassword",views.Resetloginpassword,name="Resetloginpassword"),
+    path("AddExpence",views.AddExpence,name="AddExpence"),
 
     
 
