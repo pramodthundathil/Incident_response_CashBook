@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate, logout
 
+from .decorators import admin_only
 from django.conf import settings
 from django.core.mail import send_mail,EmailMessage
 from django.template.loader import render_to_string
@@ -14,15 +15,47 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from .tokens import account_activation_token
 
-from .models import CustomeUserModel, IncidentLogs, CustomUser, ApppasswordAttempt, Income, Expense
+from .models import CustomeUserModel, IncidentLogs, CustomUser, ApppasswordAttempt, Income, Expense, Advice
 from django.contrib.auth.decorators import login_required
 
 from .decorators import AppPasswordChecker
 
+from django.db.models import Sum, Q
+from datetime import datetime , timedelta
+from django.utils.timezone import localtime, timedelta
+current_month = localtime().month
+current_year = localtime().year
 
+# Calculate the start date for the current month
+start_of_current_month = localtime().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+# Calculate the start date for 30 days before the current date
+thirty_days_ago = localtime() - timedelta(days=30)
+
+
+@admin_only
 @login_required(login_url="SignIn")
 def Index(request):
-    return render(request,'index.html')
+
+    income_data = Income.objects.filter(Q(user_id=request.user) &
+    (
+        (Q(date__month=current_month, date__year=current_year) & Q(date__gte=start_of_current_month)) |
+        (Q(date__gte=thirty_days_ago) & Q(date__lt=start_of_current_month))
+    )
+    ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+
+    expence_data = Expense.objects.filter(Q(user_id=request.user) &
+    (
+        (Q(date__month=current_month, date__year=current_year) & Q(date__gte=start_of_current_month)) |
+        (Q(date__gte=thirty_days_ago) & Q(date__lt=start_of_current_month))
+    )
+    ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+
+    context = {
+        "income_data":income_data,
+        "expence_data":expence_data
+    }
+    return render(request,'index.html',context)
 
 
 def SignIn(request):
@@ -201,24 +234,27 @@ def enterpassword(request):
     current_site = get_current_site(request)
     if request.method == "POST":
         pswd1 = request.POST['pswd1']
-        user = CustomUser.objects.get(user = request.user)
+        user1 = CustomUser.objects.get(user = request.user)
         email = request.user.email
 
-        if user.check_encrypted_password(pswd1):
+        print(user1)
+
+        if user1.check_encrypted_password(pswd1):
             try:
-                att = ApppasswordAttempt.objects.get(custome = user)
-                
+                att = ApppasswordAttempt.objects.get(custome = user1)
+            # att = att[0] 
             except:
-                pass
-            print("Correct")
-            if user.active == True:
+                att = ApppasswordAttempt.objects.create(custome = user1,passwordattempt = 0)
+                att.save()
+            # print("Correct")
+            if user1.active == True:
                 att.passwordattempt = 0
                 att.save()
                 return redirect("AddIncome")
             else:
-                IncidentLogs.objects.create(user = user.user, incident = "Your App Password is blocked app password attempt",ipaddress = client_ip )
+                IncidentLogs.objects.create(user = user1.user, incident = "Your App Password is blocked app password attempt",ipaddress = client_ip )
                 mail_subject = 'Invalid password attempt your account. Password Blocked'
-                message = render_to_string('emailbody4.html', {'user': user.user,"attempt":3-att.passwordattempt,'domain': current_site})
+                message = render_to_string('emailbody4.html', {'user': user1.user,"attempt":3-att.passwordattempt,'domain': current_site})
                     
                 email = EmailMessage(mail_subject, message, to=[email])
                 email.send()
@@ -226,18 +262,18 @@ def enterpassword(request):
                 return redirect("enterpassword")
         else: 
             # try:
-                att = ApppasswordAttempt.objects.get(custome = user)
+                att = ApppasswordAttempt.objects.get(custome = user1)
                 att.passwordattempt += 1
                 att.save()
             
                 if att.passwordattempt >= 3:
-                    user.active = False
-                    user.save()
+                    user1.active = False
+                    user1.save()
                     current_site = get_current_site(request)
 
-                    IncidentLogs.objects.create(user = user.user, incident = f"Account have {att.passwordattempt} unsuccessfull app password  attempt blocked your app password",ipaddress = client_ip )
+                    IncidentLogs.objects.create(user = user1.user, incident = f"Account have {att.passwordattempt} unsuccessfull app password  attempt blocked your app password",ipaddress = client_ip )
                     mail_subject = 'Invalid password attempt your account. Password Blocked'
-                    message = render_to_string('emailbody4.html', {'user': user.user,"attempt":3-att.passwordattempt,'domain': current_site})
+                    message = render_to_string('emailbody4.html', {'user': user1.user,"attempt":3-att.passwordattempt,'domain': current_site})
                     
                     email = EmailMessage(mail_subject, message, to=[email])
                     email.send()
@@ -246,27 +282,27 @@ def enterpassword(request):
                     return redirect("enterpassword")
             # except:
                 if ApppasswordAttempt.objects.filter().exists():
-                    att = ApppasswordAttempt.objects.get(custome = user)
+                    att = ApppasswordAttempt.objects.get(custome = user1)
                     # att.passwordattempt += 1
                     # att.save()
-                    IncidentLogs.objects.create(user = user.user, incident = f"Account have {att.passwordattempt} unsuccessfull app password  attempt ",ipaddress = client_ip )
+                    IncidentLogs.objects.create(user = user1.user, incident = f"Account have {att.passwordattempt} unsuccessfull app password  attempt ",ipaddress = client_ip )
 
                     mail_subject = 'Invalid password attempt your account.'
-                    message = render_to_string('emailbody4.html', {'user': user.user,"attempt":3-att.passwordattempt})
+                    message = render_to_string('emailbody4.html', {'user': user1.user,"attempt":3-att.passwordattempt})
                     
                     email = EmailMessage(mail_subject, message, to=[email])
                     email.send()
                     messages.info(request,f"Password Enterd incorrect..{3- att.passwordattempt} attempt left")
                     return redirect("enterpassword")
                 else:
-                    appass = ApppasswordAttempt.objects.create(custome = user,passwordattempt = 1)
+                    appass = ApppasswordAttempt.objects.create(custome = user1,passwordattempt = 1)
                     appass.save()
                     mail_subject = 'Invalid password attempt your account.'
-                    message = render_to_string('emailbody4.html', {'user': user.user,"attempt":3-appass.passwordattempt})
+                    message = render_to_string('emailbody4.html', {'user': user1.user,"attempt":3-appass.passwordattempt})
                     
                     email = EmailMessage(mail_subject, message, to=[email])
                     email.send()
-                    IncidentLogs.objects.create(user = user.user, incident = f"Account have {appass.passwordattempt} unsuccessfull app password  attempt ",ipaddress = client_ip )
+                    IncidentLogs.objects.create(user = user1.user, incident = f"Account have {appass.passwordattempt} unsuccessfull app password  attempt ",ipaddress = client_ip )
 
                     messages.info(request,f"Password Enterd incorrect..{3- appass.passwordattempt} attempt left")
                     return redirect("enterpassword")
@@ -336,4 +372,80 @@ def Resetloginpassword(request):
             return redirect("Resetloginpassword")
 
     return render(request,'resetloginpassword.html')
+
+
+@login_required(login_url="SignIn")
+def FinaceAdvice(request):
+    myadvices = Advice.objects.filter(user = request.user)
+    if request.method == "POST":
+        ques = request.POST['ques']
+        advice = Advice.objects.create(question = ques, user = request.user)
+        advice.save()
+        messages.info(request,"Advice Asked")
+        return redirect("FinaceAdvice")
+
+    context = {
+        "myadvice":myadvices
+    }
+    return render(request,"financialadvices.html",context)
+
+def deleteadvice(request,pk):
+    Advice.objects.get(id = pk).delete()
+    messages.info(request,"Advice deleted")
+    return redirect("FinaceAdvice")
+
+from django.contrib.auth.models import Group
+
+def AdminIndex(request):
+    form = UserAddForm()
+    users = User.objects.filter(groups__name = "advisor")
+    if request.method == "POST":
+        form = UserAddForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            user.save()
+            group = Group.objects.get(name='advisor')
+            user.groups.add(group) 
+            user.save()
+            messages.info(request,"Advisor addedd")
+            return redirect("AdminIndex")
+
+    context = {
+        "form":form,
+        "users":users
+    }
+    return render(request,"adminindex.html",context)
+
+
+def AdvisorIndex(request):
+    advise = Advice.objects.all()
+
+    context = {
+        "advise":advise
+    }
+    return render(request,'advisorindex.html',context)
+
+def Advisoranswer(request,pk):
+    adv = Advice.objects.get(id = pk)
+    if request.method == "POST":
+        ad = request.POST['advise']
+        adv.advice  = ad
+        adv.save()
+        messages.info(request,"data addedd")
+        return redirect("AdvisorIndex")
+    return redirect("AdvisorIndex")
+        
+
+def News(request):
+    import requests
+    url = "https://newsapi.org/v2/everything?q=tesla&from=2024-02-19&sortBy=publishedAt&apiKey=fb0fea13be284ffa8c4e03b6a50d3985"
+    res = requests.get(url = url)
+    data = res.json()
+    news = data["articles"]
+
+    context = {
+        "news":news
+    }
+    return render(request,"news.html",context)
+
 

@@ -16,7 +16,11 @@ urlpatterns = [
     path("LoginforApppasswordReset",views.LoginforApppasswordReset,name="LoginforApppasswordReset"),
     path("Resetloginpassword",views.Resetloginpassword,name="Resetloginpassword"),
     path("AddExpence",views.AddExpence,name="AddExpence"),
-
-    
-
+    path("FinaceAdvice",views.FinaceAdvice,name="FinaceAdvice"),
+    path("AdminIndex",views.AdminIndex,name="AdminIndex"),
+    path("deleteadvice/<int:pk>",views.deleteadvice, name="deleteadvice"),
+    path("AdvisorIndex",views.AdvisorIndex,name="AdvisorIndex"),
+    path("Advisoranswer/<int:pk>",views.Advisoranswer, name="Advisoranswer"),
+    path("AdvisorIndex",views.AdvisorIndex,name="AdvisorIndex"),
+    path("News",views.News,name="News"),
 ]

@@ -78,8 +78,21 @@ class CustomUser(models.Model):
 
 class ApppasswordAttempt(models.Model):
 	passwordattempt = models.PositiveIntegerField()
-	custome = models.OneToOneField(CustomUser,on_delete = models.CASCADE)
+	custome = models.ForeignKey(CustomUser,on_delete = models.CASCADE)
     # user  = models.ForeignKey(User,on_delete = models.CASCADE)
+
+
+class Advice(models.Model):
+	date = models.DateField(auto_now_add= True)
+	question = models.CharField(max_length = 255)
+	advice = models.TextField(max_length = 500, null = True)
+	user = models.ForeignKey(User, on_delete = models.CASCADE)
+	advisor = models.PositiveBigIntegerField(null = True)
+
+
+
+
+
 
 
 

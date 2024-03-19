@@ -1,0 +1,46 @@
+{% extends 'index.html' %}
+{% block content %}
+<style>
+.content{
+    display: flex;
+    flex-wrap: wrap;
+    padding: 10px;
+    justify-content: space-evenly;
+
+}
+.content .items{
+    width:45%;
+    padding: 10px;
+    margin: auto;
+    border: .5px solid gray;
+    background-color: whitesmoke;
+    box-sizing: border-box;
+
+}
+.items h3, p{
+    color: black !important;
+}
+</style>
+
+<div class="container mt-5">
+    <h4 class="text-info">Financial News</h4>
+    <div class="content">
+        {% for n in news %}
+
+        <div class="items" class="text-dark">
+            <img src="{{n.urlToImage}}" style="width: 20%;" alt="">
+            <h3 class="text-dark">{{n.title}}</h3>
+            <!-- <span class="text-warning">Customer: {{adv.user.first_name}}</span> -->
+            <p>Date: {{n.publishedAt}}</p>
+            <p style="height: 50px;overflow: auto;">{{n.description}} </p>
+            <a href="{{n.url}}" target="_blank">View Full news</a>
+            
+            
+        </div>
+        {% endfor %}
+       
+
+    </div>
+</div>
+
+{% endblock %}
