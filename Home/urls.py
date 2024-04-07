@@ -23,4 +23,6 @@ urlpatterns = [
     path("Advisoranswer/<int:pk>",views.Advisoranswer, name="Advisoranswer"),
     path("AdvisorIndex",views.AdvisorIndex,name="AdvisorIndex"),
     path("News",views.News,name="News"),
+    path("Reports",views.Reports,name="Reports"),
+    path("Profile",views.Profile,name="Profile"),
 ]

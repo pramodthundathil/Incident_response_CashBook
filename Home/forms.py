@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User 
 from django.contrib.auth.forms import UserCreationForm
 from .models import Income, Expense
-from django.forms import ModelForm, Textarea, TextInput
+from django.forms import ModelForm, Textarea, TextInput, Select
 
 
 class UserAddForm(UserCreationForm):
@@ -33,7 +33,7 @@ class ExpenceForm(ModelForm):
         widgets = {
             "amount":TextInput(attrs={"type":"number","class":"form-control"}),
             "description":Textarea(attrs={"class":"form-control"}),
-            "category":TextInput(attrs={"type":"text","class":"form-control"}),
+            "category":Select(attrs={"type":"text","class":"form-control"}),
             "date":TextInput(attrs={"type":"date","class":"form-control"})
         }
 

@@ -72,17 +72,17 @@
                                     <a class="nav-link" href="{%url 'FinaceAdvice' %}">Get Financial Advices </a>
                                  </li>
                                  <li class="nav-item">
-                                    <a class="nav-link" href="{%url 'News' %}">News </a>
+                                    <a class="nav-link" href="{%url 'Reports' %}">Reports </a>
                                  </li>
                                  <li class="nav-item">
                                     <a class="nav-link" href="{%url 'IncidentLog' %}">Access Log Report</a>
                                  </li>
                                
                                  <li class="nav-item d_none le_co">
-                                    <a class="nav-link" href="{%url 'SignOut' %}"><i  class="fa fa-user" aria-hidden="true"></i>{{request.user.first_name}}</a>
+                                    <a class="nav-link" href="{%url 'Profile' %}">Profile {{request.user.first_name}}</a>
                                  </li>
                                  <li class="nav-item d_none le_co">
-                                    <a class="nav-link" href="#"><i  class="fa fa-search" aria-hidden="true"></i></a>
+                                    <a class="nav-link" href="{%url 'SignOut' %}">Logout</a>
                                  </li>
                               </ul>
                            </div>
@@ -228,26 +228,26 @@
       <script>
          let ctx = document.getElementById("chart").getContext("2d");
  
- let chart = new Chart(ctx, {
-   type: "bar",
-   data: {
-      labels: ["income", "expendes"],
-      datasets: [
-         {
-           label: "Expence And Income Graph",
-           backgroundColor: ["#146310", "#FF5733"],
-           borderColor: "#417690",
-           data: [ {{ income_data }}, {{expence_data}}]
-         }
-      ]
-   },
-   options: {
-      title: {
-         text: "Gross Volume in 2020",
-         display: true
-      }
-   }
- });
+         let chart = new Chart(ctx, {
+            type: "bar",
+            data: {
+               labels: ["income", "expendes"],
+               datasets: [
+                  {
+                  label: "Expence And Income Graph",
+                  backgroundColor: ["#146310", "#FF5733"],
+                  borderColor: "#417690",
+                  data: [ {{ income_data }}, {{expence_data}}]
+                  }
+               ]
+            },
+            options: {
+               title: {
+                  text: "Gross Volume in 2020",
+                  display: true
+               }
+            }
+         });
      </script>
    </body>
 </html>

@@ -36,11 +36,12 @@ class ExpenseCategory(models.Model):
 		verbose_name_plural = 'Expense Categories'
 
 class Expense(models.Model):
+	options = (("Savings","Savings"),("Fixed","Fixed"),("other","other"))
 	user = models.ForeignKey(User,on_delete=models.CASCADE,null=True)
 	amount = models.FloatField()
 	date = models.DateField(default = localtime)
 	description = models.TextField()
-	category = models.CharField(max_length = 255)
+	category = models.CharField(max_length = 255, choices=options)
 	created_at = models.DateTimeField(default=localtime)
 	
 

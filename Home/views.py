@@ -32,6 +32,10 @@ start_of_current_month = localtime().replace(day=1, hour=0, minute=0, second=0, 
 # Calculate the start date for 30 days before the current date
 thirty_days_ago = localtime() - timedelta(days=30)
 
+from datetime import datetime
+
+current_year = datetime.now().year
+
 
 @admin_only
 @login_required(login_url="SignIn")
@@ -449,3 +453,96 @@ def News(request):
     return render(request,"news.html",context)
 
 
+def Reports(request):
+    income_data = Income.objects.filter(Q(user_id=request.user) &
+    (
+        (Q(date__month=current_month, date__year=current_year) & Q(date__gte=start_of_current_month)) |
+        (Q(date__gte=thirty_days_ago) & Q(date__lt=start_of_current_month))
+    )
+    ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+
+    expence_data = Expense.objects.filter(Q(user_id=request.user) &
+    (
+        (Q(date__month=current_month, date__year=current_year) & Q(date__gte=start_of_current_month)) |
+        (Q(date__gte=thirty_days_ago) & Q(date__lt=start_of_current_month))
+    )
+    ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+
+    
+
+    income_data_year = Income.objects.filter(
+        user_id=request.user,
+        date__year=current_year
+    ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+
+    expense_data_year = Expense.objects.filter(
+        user_id=request.user,
+        date__year=current_year
+    ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+
+
+    expense_category_1 = Expense.objects.filter(category = "Savings").aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+    expense_category_2 = Expense.objects.filter(category = "Fixed").aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+    expense_category_3 = Expense.objects.exclude(Q(category="Fixed") | Q(category="Savings")).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+
+    end_of_current_month = start_of_current_month.replace(day=28) + timedelta(days=4)
+
+   
+
+    # Filter expenses for each category within the current month
+    expense_category_month_1 = Expense.objects.filter(category="Savings", date__gte=start_of_current_month, date__lte=end_of_current_month).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+    expense_category_month_2 = Expense.objects.filter(category="Fixed", date__gte=start_of_current_month, date__lte=end_of_current_month).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+    expense_category_month_3 = Expense.objects.filter(date__month = current_month,date__year=current_year).exclude(Q(category="Fixed") | Q(category="Savings") ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+
+
+
+    
+
+    # Filter expenses for each category within the current year
+    expense_category_year_1 = Expense.objects.filter(category="Savings", date__year=current_year).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+    expense_category_year_2 = Expense.objects.filter(category="Fixed", date__year=current_year).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+    expense_category_year_3 = Expense.objects.filter(date__month = current_month).exclude(Q(category="Fixed") | Q(category="Savings")).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+    
+
+    # Assuming 'date' is the field name for the date of the expense in the Expense model
+    expense_category_year_3 = Expense.objects.filter(date__month=current_month) \
+        .exclude(category__in=["Fixed", "Savings"]) \
+        .aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+    context = {
+        "income_data":income_data,
+        "expence_data": expense_category_month_1 + expense_category_month_2 +expense_category_month_3,
+        "income1" : Income.objects.filter(user_id = request.user).aggregate(total_amount=Sum('amount'))['total_amount'] or 0,
+        "expense1" : Expense.objects.filter(user_id = request.user).aggregate(total_amount=Sum('amount'))['total_amount'] or 0,
+        "income_data_year":income_data_year,
+        "expense_data_year":expense_data_year,
+        "savings_full": expense_category_1,
+        "expense_full": expense_category_2,
+        "other_full": expense_category_3-100,
+        "savings_month":expense_category_month_1,
+        "fixed_month":expense_category_month_2,
+        "other_month":expense_category_month_3,
+        "savings_year":expense_category_year_1,
+        "fixed_year":expense_category_year_2,
+        "other_year":expense_category_year_3
+    }
+    return render(request,'reports.html',context)
+
+
+def Profile(request):
+    if request.method == "POST":
+        first_name = request.POST["fname"]
+        last_name = request.POST["lname"]
+        email = request.POST["email"]
+        username = request.POST["uname"]
+
+        user = request.user 
+        user.first_name = first_name
+        user.last_name = last_name
+        user.email = email 
+        user.username = username
+
+        user.save()
+        messages.info(request,"Profile Updated.....")
+        return redirect("Profile")
+
+    return render(request,"profile.html")
